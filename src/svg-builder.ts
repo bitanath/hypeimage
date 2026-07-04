@@ -69,7 +69,8 @@ export function buildSVG(
   emojiOpacity: number = 0.5,
   paddingLeft: number = 0,
   paddingTop: number = 0,
-  stroke: boolean = false
+  crochet: boolean = false,
+  yarn: boolean = false
 ): string {
   const lower = text.toLowerCase();
   let totalWidth = 0;
@@ -128,15 +129,29 @@ export function buildSVG(
       const d = segmentToD(samples, 16 * scale);
 
       if (d && colorIdx < colors.length) {
-        if (stroke) {
+        const color = colors[colorIdx];
+        if (yarn) {
+          if (colorIdx % 2 === 0) {
+            parts.push(
+              `<path d="${d}" fill="none" stroke="${color}" stroke-width="${10 * scale}" stroke-linejoin="round"/>`
+            );
+          } else {
+            parts.push(
+              `<path d="${d}" fill="${color}" opacity="0.15" stroke="none"/>`
+            );
+          }
+        } else if (crochet) {
           parts.push(
             `<path d="${d}" fill="none" stroke="#000" stroke-width="${2 * scale}" stroke-linejoin="round"/>`
           );
+          parts.push(
+            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${STROKE_WIDTH * scale}"/>`
+          );
+        } else {
+          parts.push(
+            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
+          );
         }
-        const color = colors[colorIdx];
-        parts.push(
-          `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${STROKE_WIDTH * scale}"/>`
-        );
       }
       colorIdx++;
     }

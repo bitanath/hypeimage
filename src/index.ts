@@ -63,7 +63,9 @@ URL encodes: copy the URL below and paste into browser
 | \`emoji-angle\` | \`45\` | Emoji rotation in degrees |
 | \`emoji-opacity\` | \`0.5\` | Emoji opacity 0–1 |
 | \`openmoji\` | \`true\` | Use OpenMoji set (set to \`false\` for Twemoji) |
-| \`stroke\` | \`false\` | Add black outline around text (set to \`true\`) |
+| \`crochet\` | \`false\` | Black outline + thin fill (crochet-style) |
+| \`yarn\` | \`false\` | Alternating thread effect (supersedes \`crochet\`) |
+
 
 ---
 
@@ -96,7 +98,8 @@ URL encodes: copy the URL below and paste into browser
     const rawOpacity = url.searchParams.get('shadow-opacity') || '0.3';
     let shadowOpacity = parseFloat(rawOpacity);
     if (isNaN(shadowOpacity)) shadowOpacity = 0.3;
-    const stroke = url.searchParams.get('stroke') === 'true';
+    const crochet = url.searchParams.get('crochet') === 'true';
+    const yarn = url.searchParams.get('yarn') === 'true';
     const emojiParam = url.searchParams.get('emoji') || '';
     const emojis = emojiParam ? emojiParam.split(',').slice(0, 4) : [];
     const rawAngle = url.searchParams.get('emoji-angle') || '45';
@@ -134,7 +137,7 @@ URL encodes: copy the URL below and paste into browser
 
     const gradient = getGradient(gradientName);
     const colors = generateColorWheel(gradient, totalSegments);
-    const svg = buildSVG(text, colors, letterData, bgColor, shadow, shadowOpacity, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, stroke);
+    const svg = buildSVG(text, colors, letterData, bgColor, shadow, shadowOpacity, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, crochet, yarn);
 
     await ensureResvg();
 
