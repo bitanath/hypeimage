@@ -133,11 +133,7 @@ export function buildSVG(
         if (yarn) {
           if (colorIdx % 2 === 0) {
             parts.push(
-              `<path d="${d}" fill="none" stroke="${color}" stroke-width="${10 * scale}" stroke-linejoin="round"/>`
-            );
-          } else {
-            parts.push(
-              `<path d="${d}" fill="${color}" opacity="0.15" stroke="none"/>`
+              `<path d="${d}" fill="none" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
             );
           }
         } else if (crochet) {
