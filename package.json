@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "prebuild": "node precompute.mjs"
+    "prebuild": "node precompute.mjs",
+    "precompute:openmoji": "node precompute-openmoji.mjs"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2"

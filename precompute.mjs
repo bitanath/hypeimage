@@ -263,6 +263,7 @@ const EMOJI_SVGS_PATH = resolve(__dirname, 'data/emoji-svgs.json');
 const GEMOJI_URL = 'https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json';
 const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg';
 const FETCH_CONCURRENCY = 10;
+const EXCLUDED_CATEGORIES = ['Symbols'];
 
 function emojiToTwemojiFilename(emoji) {
   const cps = [];
@@ -290,8 +291,15 @@ async function downloadEmojiSvgs() {
   if (!resp.ok) throw new Error(`Failed to fetch gemoji: ${resp.status}`);
   const gemojiList = await resp.json();
 
+  // prune cached entries from excluded categories so a rebuild actually removes them
+  for (const e of gemojiList) {
+    if (e.emoji && EXCLUDED_CATEGORIES.includes(e.category)) {
+      delete emojiSvgs[e.emoji];
+    }
+  }
+
   const toDownload = gemojiList
-    .filter(e => e.emoji && !emojiSvgs[e.emoji])
+    .filter(e => e.emoji && !EXCLUDED_CATEGORIES.includes(e.category) && !emojiSvgs[e.emoji])
     .map(e => ({ emoji: e.emoji, filename: emojiToTwemojiFilename(e.emoji) }));
 
   if (toDownload.length === 0) {

@@ -1,5 +1,5 @@
 import { LetterData } from './types';
-import { getEmojiSVG } from './emoji';
+import { getEmojiSVG, isUsingOpenmoji } from './emoji';
 
 const WIDTH = 400;
 const HEIGHT = 300;
@@ -9,6 +9,8 @@ const SCALE = 0.2;
 const STROKE_WIDTH = 0.5;
 
 const EMOJI_SCALE = 0.835;
+const OPENMOJI_BOOST = 1.2;
+const EMOJI_VIEWBOX = 36;
 
 function buildEmojiGrid(emojis: string[], opacity: number, angle: number): string {
   const spacing = 50;
@@ -18,6 +20,11 @@ function buildEmojiGrid(emojis: string[], opacity: number, angle: number): strin
   const valid = emojis.map(e => getEmojiSVG(e)).filter(Boolean) as string[];
   if (valid.length === 0) return '';
 
+  const openmoji = isUsingOpenmoji();
+  const viewBox = openmoji ? 72 : EMOJI_VIEWBOX;
+  const center = viewBox / 2;
+  const scale = openmoji ? EMOJI_SCALE * 0.5 * OPENMOJI_BOOST : EMOJI_SCALE;
+
   const parts: string[] = [];
   let idx = 0;
   for (let r = 0; r < rows; r++) {
@@ -26,7 +33,7 @@ function buildEmojiGrid(emojis: string[], opacity: number, angle: number): strin
       const x = c * spacing;
       const y = r * spacing;
       parts.push(
-        `<g transform="translate(${x},${y}) scale(${EMOJI_SCALE}) rotate(${angle}, 18, 18)" opacity="${opacity.toFixed(2)}">${svg}</g>`
+        `<g transform="translate(${x},${y}) scale(${scale}) rotate(${angle}, ${center}, ${center})" opacity="${opacity.toFixed(2)}">${svg}</g>`
       );
       idx++;
     }
@@ -61,7 +68,8 @@ export function buildSVG(
   emojiAngle: number = 45,
   emojiOpacity: number = 0.5,
   paddingLeft: number = 0,
-  paddingTop: number = 0
+  paddingTop: number = 0,
+  stroke: boolean = false
 ): string {
   const lower = text.toLowerCase();
   let totalWidth = 0;
@@ -120,6 +128,11 @@ export function buildSVG(
       const d = segmentToD(samples, 16 * scale);
 
       if (d && colorIdx < colors.length) {
+        if (stroke) {
+          parts.push(
+            `<path d="${d}" fill="none" stroke="#000" stroke-width="${2 * scale}" stroke-linejoin="round"/>`
+          );
+        }
         const color = colors[colorIdx];
         parts.push(
           `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${STROKE_WIDTH * scale}"/>`
