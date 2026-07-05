@@ -59,12 +59,13 @@ URL encodes: copy the URL below and paste into browser
 | \`bg\` | \`#FFF9C4\` | Background hex color |
 | \`shadow\` | \`false\` | Enable text drop shadow (set to \`true\`) |
 | \`shadow-opacity\` | \`0.3\` | Shadow opacity 0–1 |
+| \`outlined\` | \`true\` | Outer outline only (default). Set to \`false\` for fill-only |
 | \`emoji\` | _(none)_ | Background emoji pattern (comma-sep, max 4) |
 | \`emoji-angle\` | \`45\` | Emoji rotation in degrees |
 | \`emoji-opacity\` | \`0.5\` | Emoji opacity 0–1 |
 | \`openmoji\` | \`true\` | Use OpenMoji set (set to \`false\` for Twemoji) |
-| \`crochet\` | \`false\` | Black outline + thin fill (crochet-style) |
-| \`yarn\` | \`false\` | Alternating thread effect (supersedes \`crochet\`) |
+| \`crochet\` | \`false\` | Outline every segment + thin fill (crochet-style, supersedes \`outlined\`) |
+| \`yarn\` | \`false\` | Alternating thread effect (supersedes \`outlined\` and \`crochet\`) |
 
 
 ---
@@ -100,6 +101,7 @@ URL encodes: copy the URL below and paste into browser
     if (isNaN(shadowOpacity)) shadowOpacity = 0.3;
     const crochet = url.searchParams.get('crochet') === 'true';
     const yarn = url.searchParams.get('yarn') === 'true';
+    const outlined = url.searchParams.get('outlined') !== 'false';
     const emojiParam = url.searchParams.get('emoji') || '';
     const emojis = emojiParam ? emojiParam.split(',').slice(0, 4) : [];
     const rawAngle = url.searchParams.get('emoji-angle') || '45';
@@ -137,7 +139,7 @@ URL encodes: copy the URL below and paste into browser
 
     const gradient = getGradient(gradientName);
     const colors = generateColorWheel(gradient, totalSegments);
-    const svg = buildSVG(text, colors, letterData, bgColor, shadow, shadowOpacity, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, crochet, yarn);
+    const svg = buildSVG(text, colors, letterData, bgColor, shadow, shadowOpacity, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, crochet, yarn, outlined);
 
     await ensureResvg();
 

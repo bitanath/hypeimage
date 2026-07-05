@@ -70,7 +70,8 @@ export function buildSVG(
   paddingLeft: number = 0,
   paddingTop: number = 0,
   crochet: boolean = false,
-  yarn: boolean = false
+  yarn: boolean = false,
+  outlined: boolean = true
 ): string {
   const lower = text.toLowerCase();
   let totalWidth = 0;
@@ -130,18 +131,25 @@ export function buildSVG(
 
       if (d && colorIdx < colors.length) {
         const color = colors[colorIdx];
-        if (yarn) {
-          if (colorIdx % 2 === 0) {
-            parts.push(
-              `<path d="${d}" fill="none" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
-            );
-          }
-        } else if (crochet) {
+        if (crochet) {
           parts.push(
             `<path d="${d}" fill="none" stroke="#000" stroke-width="${2 * scale}" stroke-linejoin="round"/>`
           );
           parts.push(
             `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${STROKE_WIDTH * scale}"/>`
+          );
+        } else if (yarn) {
+          if (colorIdx % 2 === 0) {
+            parts.push(
+              `<path d="${d}" fill="none" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
+            );
+            parts.push(
+              `<path d="${d}" fill="none" stroke="#000" stroke-width="${1 * scale}" stroke-linejoin="round"/>`
+            );
+          }
+        } else if (outlined) {
+          parts.push(
+            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
           );
         } else {
           parts.push(
@@ -155,16 +163,35 @@ export function buildSVG(
   }
 
   const pathsHtml = parts.join('\n  ');
-  const content = shadow
-    ? `<defs>
+  const outlineFilter = outlined && !crochet && !yarn;
+  let defsHtml = '';
+  let contentHtml = pathsHtml;
+
+  if (outlineFilter) {
+    defsHtml += `
+  <filter id="o" x="-20%" y="-20%" width="140%" height="140%">
+    <feOffset in="SourceAlpha" dx="3" dy="3" result="offset"/>
+    <feFlood flood-color="#000" result="black"/>
+    <feComposite in="black" in2="offset" operator="in" result="shadow"/>
+    <feMerge>
+      <feMergeNode in="shadow"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>`;
+    contentHtml = `<g filter="url(#o)">${contentHtml}</g>`;
+  }
+
+  if (shadow) {
+    defsHtml += `
   <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="${shadowOpacity}"/>
-  </filter>
-</defs>
-<g filter="url(#s)">
-  ${pathsHtml}
-</g>`
-    : pathsHtml;
+  </filter>`;
+    contentHtml = `<g filter="url(#s)">${contentHtml}</g>`;
+  }
+
+  const content = defsHtml
+    ? `<defs>${defsHtml}</defs>${contentHtml}`
+    : contentHtml;
 
   const emojiLayer = emojis.length > 0 ? buildEmojiGrid(emojis, emojiOpacity, emojiAngle) : '';
 
