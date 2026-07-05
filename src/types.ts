@@ -1,7 +1,9 @@
-export type SegmentData = [[number, number][], number];
+export type SegmentData = [string, number];
 
 export interface LetterData {
   w: number;
+  yMin: number;
+  yMax: number;
   s: SegmentData[];
 }
 

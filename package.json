@@ -9,7 +9,7 @@
     "precompute:openmoji": "node precompute-openmoji.mjs"
   },
   "dependencies": {
-    "@resvg/resvg-wasm": "^2.6.2"
+    "@spacek33z/resvg-wasm-simd": "2.6.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",

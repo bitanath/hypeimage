@@ -6,8 +6,6 @@ const HEIGHT = 300;
 const PADDING = 20;
 const FONT_ADVANCE = 378;
 const SCALE = 0.2;
-const STROKE_WIDTH = 0.5;
-
 const EMOJI_SCALE = 0.835;
 const OPENMOJI_BOOST = 1.2;
 const EMOJI_VIEWBOX = 36;
@@ -39,22 +37,6 @@ function buildEmojiGrid(emojis: string[], opacity: number, angle: number): strin
     }
   }
   return parts.join('\n  ');
-}
-
-function segmentToD(samples: [number, number][], fillWidth: number): string {
-  if (samples.length < 2) return '';
-  const r = fillWidth / 4;
-  let d = `M${samples[0][0]},${samples[0][1]}`;
-  for (let i = 1; i < samples.length; i++) {
-    const mid = Math.floor(samples.length / 2);
-    if (i === mid) {
-      d += `A${r},${r} 0 1,1 ${samples[i][0]},${samples[i][1]}`;
-    } else {
-      d += `L${samples[i][0]},${samples[i][1]}`;
-    }
-  }
-  d += `A${r},${r} 0 1,1 ${samples[0][0]},${samples[0][1]}Z`;
-  return d;
 }
 
 export function buildSVG(
@@ -105,64 +87,55 @@ export function buildSVG(
 
   let yMin = Infinity, yMax = -Infinity;
   for (const { data } of chars) {
-    for (const seg of data.s) {
-      const [samples] = seg;
-      for (const [, y] of samples) {
-        if (y < yMin) yMin = y;
-        if (y > yMax) yMax = y;
-      }
-    }
+    if (data.yMin < yMin) yMin = data.yMin;
+    if (data.yMax > yMax) yMax = data.yMax;
   }
   const offsetY = (HEIGHT - (yMin + yMax) * scale) / 2;
 
   let colorIdx = 0;
-  let parts: string[] = [];
+  const charGroups: string[] = [];
 
   let cursorX = 0;
 
   for (const { char: c, data } of chars) {
-    for (const seg of data.s) {
-      const [rawSamples, _progress] = seg;
-      const samples: [number, number][] = rawSamples.map(([x, y]) => [
-        offsetX + (x + cursorX) * scale + paddingLeft,
-        offsetY + y * scale + paddingTop,
-      ]);
-      const d = segmentToD(samples, 16 * scale);
+    const tx = offsetX + cursorX * scale + paddingLeft;
+    const ty = offsetY + paddingTop;
+    const segParts: string[] = [];
 
+    for (const seg of data.s) {
+      const [d] = seg as [string, number];
       if (d && colorIdx < colors.length) {
         const color = colors[colorIdx];
         if (crochet) {
-          parts.push(
-            `<path d="${d}" fill="none" stroke="#000" stroke-width="${2 * scale}" stroke-linejoin="round"/>`
-          );
-          parts.push(
-            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${STROKE_WIDTH * scale}"/>`
+          segParts.push(
+            `<path d="${d}" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round"/>`,
+            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="0.5" stroke-linejoin="round"/>`
           );
         } else if (yarn) {
           if (colorIdx % 2 === 0) {
-            parts.push(
-              `<path d="${d}" fill="none" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
-            );
-            parts.push(
-              `<path d="${d}" fill="none" stroke="#000" stroke-width="${1 * scale}" stroke-linejoin="round"/>`
+            segParts.push(
+              `<path d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>`,
+              `<path d="${d}" fill="none" stroke="#000" stroke-width="1" stroke-linejoin="round"/>`
             );
           }
-        } else if (outlined) {
-          parts.push(
-            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
-          );
         } else {
-          parts.push(
-            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="${3 * scale}" stroke-linejoin="round"/>`
+          segParts.push(
+            `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>`
           );
         }
       }
       colorIdx++;
     }
+
+    if (segParts.length > 0) {
+      charGroups.push(
+        `<g transform="translate(${tx}, ${ty}) scale(${scale})">${segParts.join('\n  ')}</g>`
+      );
+    }
     cursorX += data.w * SCALE;
   }
 
-  const pathsHtml = parts.join('\n  ');
+  const pathsHtml = charGroups.join('\n  ');
   const outlineFilter = outlined && !crochet && !yarn;
   let defsHtml = '';
   let contentHtml = pathsHtml;
@@ -170,7 +143,7 @@ export function buildSVG(
   if (outlineFilter) {
     defsHtml += `
   <filter id="o" x="-20%" y="-20%" width="140%" height="140%">
-    <feOffset in="SourceAlpha" dx="3" dy="3" result="offset"/>
+    <feOffset in="SourceAlpha" dx="5" dy="4" result="offset"/>
     <feFlood flood-color="#000" result="black"/>
     <feComposite in="black" in2="offset" operator="in" result="shadow"/>
     <feMerge>

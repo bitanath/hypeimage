@@ -176,6 +176,22 @@ function outlineStrokes(samples, fillWidth) {
   return [...even, ...odd];
 }
 
+function segmentToD(samples, fillWidth) {
+  if (samples.length < 2) return '';
+  const r = fillWidth / 4;
+  let d = `M${+samples[0].x.toFixed(2)},${+samples[0].y.toFixed(2)}`;
+  for (let i = 1; i < samples.length; i++) {
+    const mid = Math.floor(samples.length / 2);
+    if (i === mid) {
+      d += `A${r},${r} 0 1,1 ${+samples[i].x.toFixed(2)},${+samples[i].y.toFixed(2)}`;
+    } else {
+      d += `L${+samples[i].x.toFixed(2)},${+samples[i].y.toFixed(2)}`;
+    }
+  }
+  d += `A${r},${r} 0 1,1 ${+samples[0].x.toFixed(2)},${+samples[0].y.toFixed(2)}Z`;
+  return d;
+}
+
 function averageSegmentJoins(segments) {
   for (let i = 0; i < segments.length - 1; i++) {
     const cur = segments[i];
@@ -238,10 +254,20 @@ for (const [char, pathStr] of Object.entries(charMap)) {
     allSegments.push(...smoothed);
   }
 
+  let charYMin = Infinity, charYMax = -Infinity;
+  for (const seg of allSegments) {
+    for (const p of seg.samples) {
+      if (p.y < charYMin) charYMin = p.y;
+      if (p.y > charYMax) charYMax = p.y;
+    }
+  }
+
   result[char] = {
     w: widthMap[char] || 0,
+    yMin: +charYMin.toFixed(2),
+    yMax: +charYMax.toFixed(2),
     s: allSegments.map(seg => [
-      seg.samples.map(p => [+p.x.toFixed(2), +p.y.toFixed(2)]),
+      segmentToD(seg.samples, FILL_WIDTH),
       +seg.progress.toFixed(4),
     ]),
   };

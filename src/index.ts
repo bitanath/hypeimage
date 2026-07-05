@@ -2,22 +2,24 @@ import { buildSVG } from './svg-builder';
 import { getGradient, generateColorWheel, getAllGradients } from './gradients';
 import { PrecomputedData } from './types';
 import { setEmojiSet } from './emoji';
+import { initWasm, Resvg } from '@spacek33z/resvg-wasm-simd';
 
 // @ts-ignore - imported as static asset
 import letterDataJson from '../data/letter-segments.json';
+// @ts-ignore - imported as static WebAssembly module
+import resvgWasm from '../node_modules/@spacek33z/resvg-wasm-simd/index_bg.wasm';
 const letterData: PrecomputedData = letterDataJson as PrecomputedData;
 
-import resvg_wasm from '../node_modules/@resvg/resvg-wasm/index_bg.wasm';
+let pngReady: Promise<void> | null = null;
 
-let resvgReady: Promise<void> | null = null;
-
-async function ensureResvg() {
-  if (resvgReady) return resvgReady;
-  resvgReady = (async () => {
-    const { initWasm, Resvg } = await import('@resvg/resvg-wasm');
-    await initWasm(resvg_wasm);
-  })();
-  return resvgReady;
+async function renderPNG(svg: string, scale = 1): Promise<Uint8Array> {
+  if (!pngReady) {
+    pngReady = initWasm(resvgWasm).catch(e => { pngReady = null; throw e; });
+  }
+  await pngReady;
+  const opts = scale !== 1 ? { fitTo: { mode: 'zoom' as const, value: scale } } : {};
+  const resvg = new Resvg(svg, opts);
+  return resvg.render().asPng();
 }
 
 export default {
@@ -38,7 +40,7 @@ export default {
     if (path === '/help') {
       const help = `# hypeimage — AI Worker Image Generator
 
-Generate stylized typography images with gradient colors and emoji patterns.
+Generate stylized typography SVGs with gradient colors and emoji patterns.
 
 ---
 
@@ -46,7 +48,7 @@ Generate stylized typography images with gradient colors and emoji patterns.
 
 URL encodes: copy the URL below and paste into browser
 
-\`/?text=AWESOME&gradient=purpledream&bg=%23000000&emoji=%F0%9F%94%A5,%E2%9C%A8,%F0%9F%8E%A8,%F0%9F%92%8E&emoji-angle=30&emoji-opacity=0.4&shadow=true&shadow-opacity=0.5\`
+\`/?text=AWESOME&gradient=purpledream&bg=%23000000&emoji=%F0%9F%94%A5,%E2%9C%A8,%F0%9F%8E%A8,%F0%9F%92%8E&emoji-angle=30&emoji-opacity=0.4&shadow=true&shadow-opacity=0.5\` (returns SVG directly)
 
 ---
 
@@ -66,6 +68,8 @@ URL encodes: copy the URL below and paste into browser
 | \`openmoji\` | \`true\` | Use OpenMoji set (set to \`false\` for Twemoji) |
 | \`crochet\` | \`false\` | Outline every segment + thin fill (crochet-style, supersedes \`outlined\`) |
 | \`yarn\` | \`false\` | Alternating thread effect (supersedes \`outlined\` and \`crochet\`) |
+| \`png\` | \`false\` | Output PNG instead of SVG (set to \`true\`). Slower but required for Slack et al. |
+| \`scale\` | \`0.5\` | PNG render scale (0.1–1). Lower = faster/smaller, e.g. \`0.5\` = 200×150. |
 
 
 ---
@@ -102,6 +106,11 @@ URL encodes: copy the URL below and paste into browser
     const crochet = url.searchParams.get('crochet') === 'true';
     const yarn = url.searchParams.get('yarn') === 'true';
     const outlined = url.searchParams.get('outlined') !== 'false';
+    const wantPNG = url.searchParams.get('png') === 'true';
+    const rawScale = url.searchParams.get('scale') || '0.5';
+    let pngScale = parseFloat(rawScale);
+    if (isNaN(pngScale) || pngScale <= 0) pngScale = 0.5;
+    if (pngScale > 1) pngScale = 1;
     const emojiParam = url.searchParams.get('emoji') || '';
     const emojis = emojiParam ? emojiParam.split(',').slice(0, 4) : [];
     const rawAngle = url.searchParams.get('emoji-angle') || '45';
@@ -141,18 +150,19 @@ URL encodes: copy the URL below and paste into browser
     const colors = generateColorWheel(gradient, totalSegments);
     const svg = buildSVG(text, colors, letterData, bgColor, shadow, shadowOpacity, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, crochet, yarn, outlined);
 
-    await ensureResvg();
+    if (wantPNG) {
+      const pngData = await renderPNG(svg, pngScale);
+      return new Response(pngData, {
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=86400, s-maxage=604800',
+        },
+      });
+    }
 
-    const { Resvg } = await import('@resvg/resvg-wasm');
-    const resvg = new Resvg(svg, {
-      fitTo: { mode: 'width', value: 400 },
-    });
-    const pngData = resvg.render();
-    const pngBuffer = pngData.asPng();
-
-    return new Response(pngBuffer, {
+    return new Response(svg, {
       headers: {
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/svg+xml',
         'Cache-Control': 'public, max-age=86400, s-maxage=604800',
       },
     });
