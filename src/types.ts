@@ -1,7 +1,4 @@
-export interface SegmentData {
-  samples: [number, number][];
-  progress: number;
-}
+export type SegmentData = [[number, number][], number];
 
 export interface LetterData {
   w: number;
