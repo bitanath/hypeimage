@@ -2,28 +2,33 @@ import { buildSVG } from './svg-builder';
 import { getGradient, generateColorWheel, getAllGradients } from './gradients';
 import { PrecomputedData } from './types';
 import { setEmojiSet } from './emoji';
-import { initWasm, Resvg } from '@spacek33z/resvg-wasm-simd';
 
 // @ts-ignore - imported as static asset
 import letterDataJson from '../data/letter-segments.json';
-// @ts-ignore - imported as static WebAssembly module
-import resvgWasm from '../node_modules/@spacek33z/resvg-wasm-simd/index_bg.wasm';
-const letterData: PrecomputedData = letterDataJson as PrecomputedData;
+const letterData = letterDataJson as unknown as PrecomputedData;
 
-let pngReady: Promise<void> | null = null;
+interface Env {
+  DO_FN_URL: string;
+  DO_AUTH_KEY: string;
+}
 
-async function renderPNG(svg: string, scale = 1): Promise<Uint8Array> {
-  if (!pngReady) {
-    pngReady = initWasm(resvgWasm).catch(e => { pngReady = null; throw e; });
+async function renderPNG(svg: string, env: Env): Promise<Uint8Array> {
+  const resp = await fetch(env.DO_FN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Require-Whisk-Auth': env.DO_AUTH_KEY,
+    },
+    body: JSON.stringify({ svg, width: 400, height: 300 }),
+  });
+  if (!resp.ok) {
+    throw new Error(`DO svg2png error: ${resp.status}`);
   }
-  await pngReady;
-  const opts = scale !== 1 ? { fitTo: { mode: 'zoom' as const, value: scale } } : {};
-  const resvg = new Resvg(svg, opts);
-  return resvg.render().asPng();
+  return new Uint8Array(await resp.arrayBuffer());
 }
 
 export default {
-  async fetch(request: Request): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -68,8 +73,7 @@ URL encodes: copy the URL below and paste into browser
 | \`openmoji\` | \`true\` | Use OpenMoji set (set to \`false\` for Twemoji) |
 | \`crochet\` | \`false\` | Outline every segment + thin fill (crochet-style, supersedes \`outlined\`) |
 | \`yarn\` | \`false\` | Alternating thread effect (supersedes \`outlined\` and \`crochet\`) |
-| \`png\` | \`false\` | Output PNG instead of SVG (set to \`true\`). Slower but required for Slack et al. |
-| \`scale\` | \`0.5\` | PNG render scale (0.1–1). Lower = faster/smaller, e.g. \`0.5\` = 200×150. |
+| \`png\` | \`false\` | Output PNG instead of SVG (set to \`true\`). Renders at 800×600. |
 
 
 ---
@@ -92,10 +96,6 @@ URL encodes: copy the URL below and paste into browser
       });
     }
 
-    if (path === '/' || path === '') {
-      return Response.redirect(new URL('/help', request.url).toString(), 302);
-    }
-
     const text = url.searchParams.get('text') || '';
     const gradientName = url.searchParams.get('gradient') || 'valkyrie';
     const bgColor = url.searchParams.get('bg') || '#FFF9C4';
@@ -107,10 +107,6 @@ URL encodes: copy the URL below and paste into browser
     const yarn = url.searchParams.get('yarn') === 'true';
     const outlined = url.searchParams.get('outlined') !== 'false';
     const wantPNG = url.searchParams.get('png') === 'true';
-    const rawScale = url.searchParams.get('scale') || '0.5';
-    let pngScale = parseFloat(rawScale);
-    if (isNaN(pngScale) || pngScale <= 0) pngScale = 0.5;
-    if (pngScale > 1) pngScale = 1;
     const emojiParam = url.searchParams.get('emoji') || '';
     const emojis = emojiParam ? emojiParam.split(',').slice(0, 4) : [];
     const rawAngle = url.searchParams.get('emoji-angle') || '45';
@@ -151,7 +147,7 @@ URL encodes: copy the URL below and paste into browser
     const svg = buildSVG(text, colors, letterData, bgColor, shadow, shadowOpacity, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, crochet, yarn, outlined);
 
     if (wantPNG) {
-      const pngData = await renderPNG(svg, pngScale);
+      const pngData = await renderPNG(svg, env);
       return new Response(pngData, {
         headers: {
           'Content-Type': 'image/png',

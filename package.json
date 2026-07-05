@@ -8,9 +8,7 @@
     "prebuild": "node precompute.mjs",
     "precompute:openmoji": "node precompute-openmoji.mjs"
   },
-  "dependencies": {
-    "@spacek33z/resvg-wasm-simd": "2.6.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
     "typescript": "^5.7.0",

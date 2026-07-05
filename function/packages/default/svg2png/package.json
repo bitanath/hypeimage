@@ -1,0 +1,8 @@
+{
+  "name": "svg2png",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@resvg/resvg-wasm": "2.6.2"
+  }
+}

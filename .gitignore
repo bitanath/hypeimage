@@ -2,3 +2,8 @@ dist/
 .wrangler/
 .DS_Store
 node_modules/
+function/node_modules/
+function/package-lock.json
+function/.nimbella
+function/.deployed
+function/__deployer__.zip
