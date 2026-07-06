@@ -1,14 +1,12 @@
 import { LetterData } from './types';
-import { getEmojiSVG, isUsingOpenmoji } from './emoji';
+import { getEmojiSVG, EMOJI_VIEWBOX, EMOJI_SCALE } from './emoji';
 
 const WIDTH = 400;
 const HEIGHT = 300;
 const PADDING = 20;
 const FONT_ADVANCE = 378;
 const SCALE = 0.2;
-const EMOJI_SCALE = 0.835;
-const OPENMOJI_BOOST = 1.2;
-const EMOJI_VIEWBOX = 36;
+// EMOJI_VIEWBOX and EMOJI_SCALE imported from emoji.ts
 
 function buildEmojiGrid(emojis: string[], opacity: number, angle: number): string {
   const spacing = 50;
@@ -18,10 +16,7 @@ function buildEmojiGrid(emojis: string[], opacity: number, angle: number): strin
   const valid = emojis.map(e => getEmojiSVG(e)).filter(Boolean) as string[];
   if (valid.length === 0) return '';
 
-  const openmoji = isUsingOpenmoji();
-  const viewBox = openmoji ? 72 : EMOJI_VIEWBOX;
-  const center = viewBox / 2;
-  const scale = openmoji ? EMOJI_SCALE * 0.5 * OPENMOJI_BOOST : EMOJI_SCALE;
+  const center = EMOJI_VIEWBOX / 2;
 
   const parts: string[] = [];
   let idx = 0;
@@ -30,8 +25,9 @@ function buildEmojiGrid(emojis: string[], opacity: number, angle: number): strin
       const svg = valid[idx % valid.length];
       const x = c * spacing;
       const y = r * spacing;
+      const altAngle = idx % 2 === 1 ? -angle : angle;
       parts.push(
-        `<g transform="translate(${x},${y}) scale(${scale}) rotate(${angle}, ${center}, ${center})" opacity="${opacity.toFixed(2)}">${svg}</g>`
+        `<g transform="translate(${x},${y}) scale(${EMOJI_SCALE}) rotate(${altAngle}, ${center}, ${center})" opacity="${opacity.toFixed(2)}">${svg}</g>`
       );
       idx++;
     }
@@ -44,16 +40,12 @@ export function buildSVG(
   colors: string[],
   letterData: Record<string, LetterData>,
   bgColor: string = '#FFF9C4',
-  shadow: boolean = false,
-  shadowOpacity: number = 0.3,
   emojis: string[] = [],
   emojiAngle: number = 45,
   emojiOpacity: number = 0.5,
   paddingLeft: number = 0,
   paddingTop: number = 0,
-  crochet: boolean = false,
-  yarn: boolean = false,
-  outlined: boolean = true
+  style: string = 'outlined'
 ): string {
   const lower = text.toLowerCase();
   let totalWidth = 0;
@@ -106,12 +98,12 @@ export function buildSVG(
       const [d] = seg as [string, number];
       if (d && colorIdx < colors.length) {
         const color = colors[colorIdx];
-        if (crochet) {
+        if (style === 'crochet') {
           segParts.push(
             `<path d="${d}" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round"/>`,
             `<path d="${d}" fill="${color}" stroke="${color}" stroke-width="0.5" stroke-linejoin="round"/>`
           );
-        } else if (yarn) {
+        } else if (style === 'yarn') {
           if (colorIdx % 2 === 0) {
             segParts.push(
               `<path d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>`,
@@ -136,7 +128,7 @@ export function buildSVG(
   }
 
   const pathsHtml = charGroups.join('\n  ');
-  const outlineFilter = outlined && !crochet && !yarn;
+  const outlineFilter = style === 'outlined';
   let defsHtml = '';
   let contentHtml = pathsHtml;
 
@@ -152,14 +144,6 @@ export function buildSVG(
     </feMerge>
   </filter>`;
     contentHtml = `<g filter="url(#o)">${contentHtml}</g>`;
-  }
-
-  if (shadow) {
-    defsHtml += `
-  <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
-    <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="${shadowOpacity}"/>
-  </filter>`;
-    contentHtml = `<g filter="url(#s)">${contentHtml}</g>`;
   }
 
   const content = defsHtml

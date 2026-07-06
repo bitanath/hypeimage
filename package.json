@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "prebuild": "node precompute.mjs",
-    "precompute:openmoji": "node precompute-openmoji.mjs"
+    "precompute:openmoji": "node precompute-openmoji.mjs",
+    "precompute:openmoji-black": "node precompute-openmoji-black.mjs"
   },
   "dependencies": {},
   "devDependencies": {
