@@ -1,17 +1,69 @@
 {
-  "name": "hypeimage-worker",
+  "name": "hypeimage",
   "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "prebuild": "node precompute.mjs",
-    "precompute:openmoji": "node precompute-openmoji.mjs",
-    "precompute:openmoji-black": "node precompute-openmoji-black.mjs"
+  "description": "Generate stylized typography SVGs and PNGs with gradient colors and emoji patterns",
+  "type": "module",
+  "main": "./dist/hypeimage.cjs",
+  "module": "./dist/hypeimage.mjs",
+  "types": "./dist/hypeimage.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/hypeimage.cjs",
+      "import": "./dist/hypeimage.mjs",
+      "default": "./dist/hypeimage.js"
+    }
   },
-  "dependencies": {},
+  "unpkg": "./dist/hypeimage.js",
+  "jsdelivr": "./dist/hypeimage.js",
+  "files": [
+    "dist/",
+    "data/letter-segments.json",
+    "data/openmoji-black-svgs.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitanath/hypeimage.git"
+  },
+  "homepage": "https://github.com/bitanath/hypeimage",
+  "bugs": {
+    "url": "https://github.com/bitanath/hypeimage/issues"
+  },
+  "author": "bitanath",
+  "peerDependencies": {
+    "@resvg/resvg-js": "^2.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@resvg/resvg-js": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "build": "rollup -c --configPlugin typescript",
+    "test": "npm run build && node test/test.cjs && node test/test.mjs",
+    "test:visual": "npm run build && node test/visual.mjs",
+    "dev:worker": "wrangler dev",
+    "deploy:worker": "wrangler deploy",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "image",
+    "svg",
+    "png",
+    "typography",
+    "gradient",
+    "emoji",
+    "generator"
+  ],
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250214.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "@types/node": "^26.1.1",
+    "rollup": "^4.52.2",
+    "rollup-plugin-dts": "^6.2.3",
+    "tslib": "^2.8.1",
     "typescript": "^5.7.0",
     "wrangler": "^3.107.0"
   }

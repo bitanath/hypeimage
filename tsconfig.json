@@ -2,14 +2,13 @@
   "compilerOptions": {
     "target": "ES2021",
     "module": "ESNext",
-    "lib": ["ES2021"],
+    "lib": ["ES2021", "DOM"],
     "moduleResolution": "bundler",
-    "types": ["@cloudflare/workers-types"],
     "strict": false,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
-  "include": ["src/**/*"]
+  "include": ["index.ts", "src/**/*"]
 }

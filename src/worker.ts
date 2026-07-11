@@ -1,11 +1,4 @@
-import { buildSVG } from './svg-builder';
-import { getGradient, generateColorWheel, getAllGradients } from './gradients';
-import { PrecomputedData } from './types';
-
-
-// @ts-ignore - imported as static asset
-import letterDataJson from '../data/letter-segments.json';
-const letterData = letterDataJson as unknown as PrecomputedData;
+import { generateImage, getAllGradients } from '../index';
 
 interface Env {
   DO_FN_URL: string;
@@ -114,27 +107,32 @@ Generate stylized typography SVGs with gradient colors and emoji patterns.
       return Response.redirect(new URL('/help', request.url).toString(), 302);
     }
 
-    const lower = text.toLowerCase();
-    let totalSegments = 0;
-    for (const c of lower) {
-      const data = letterData[c];
-      if (data) totalSegments += data.s.length;
+    let svg: string;
+    try {
+      svg = generateImage({
+        text,
+        gradient: gradientName,
+        bg: bgColor,
+        style: style as 'outlined' | 'soft' | 'crochet' | 'yarn',
+        emoji: emojis,
+        emojiAngle,
+        emojiOpacity,
+        paddingLeft,
+        paddingTop,
+      });
+    } catch (e: any) {
+      if (e.message === 'No renderable characters in text') {
+        return new Response(
+          JSON.stringify({ error: e.message }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      throw e;
     }
-
-    if (totalSegments === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No renderable characters in text' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const gradient = getGradient(gradientName);
-    const colors = generateColorWheel(gradient, totalSegments);
-    const svg = buildSVG(text, colors, letterData, bgColor, emojis, emojiAngle, emojiOpacity, paddingLeft, paddingTop, style);
 
     if (wantPNG) {
       const pngData = await renderPNG(svg, env);
-      return new Response(pngData, {
+      return new Response(pngData as unknown as BodyInit, {
         headers: {
           'Content-Type': 'image/png',
           'Cache-Control': 'public, max-age=86400, s-maxage=604800',
