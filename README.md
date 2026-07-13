@@ -20,6 +20,8 @@ const svg = generateImage({ text: 'hello' });
 const png = await generateImagePNG({ text: 'hello', gradient: 'sunset' });
 ```
 
+✨ Originally built for the Slack Agent Builder Challenge c.2026
+
 ## API
 
 ### `generateImage(options): string`
